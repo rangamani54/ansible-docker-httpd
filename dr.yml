@@ -1,0 +1,56 @@
+- hosts: localhost
+  vars:
+    webpage: "/ws1/dr.html"
+    container: "ansible139"
+  tasks:
+
+  - name: "Configuring yum repo for docker"
+    yum_repository: 
+      name: "docker"
+      description: "docker repository"
+      baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable/"
+      gpgcheck: no
+      state: present
+
+  - name: "Installing docker"
+    command: "yum install docker-ce --nobest -y"
+
+  - name: "Starting docker service"
+    service:
+      name: "docker"
+      state: started
+  - name: "Installing Python 3.6"
+    package: 
+      name: "python3"
+      state: present
+  - name: "Installing docker Python module"
+    pip: 
+      name: docker
+  - name: "Pulling Docker Image"
+    docker_image:
+      name: "httpd"
+      tag: "ws"
+      source: pull
+  - name: "Launching Docker Container"
+    docker_container:
+      name: "{{ container }}"
+      image: "httpd:ws"
+      ports:  "1357:80"
+      exposed_ports: "80"
+      interactive: yes
+      tty: yes
+      volumes: "/var/www/html/dr.html:/var/www/html/dr.html"
+      state: started
+
+  - name: "Copying Web Content"
+    copy: 
+       src: "{{ webpage }}"
+       dest: "/var/www/html/dr.html"
+    notify: is
+
+  handlers:
+  - name: is
+    service:
+       name: "docker"
+       state: restarted
+
